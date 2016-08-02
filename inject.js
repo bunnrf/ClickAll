@@ -1,5 +1,5 @@
 const QUEUE_THRESHOLD = 5;
-const QUEUE_DURATION = 15000;
+const QUEUE_DURATION = 18000;
 
 // for Context Menus
 let contextEl = null;
@@ -11,6 +11,7 @@ document.addEventListener("contextmenu", function(event) {
 // there can be at most QUEUE_THRESHOLD + 1 elements in the queue at time of evaluation
 // so all but 1 el in the queue must compare to equal to broadcast repetition detection
 const clickQueue = [];
+let clickQueueSlice = [];
 document.addEventListener("mousedown", function(event) {
   clickQueue.push(event.target);
 
@@ -18,11 +19,14 @@ document.addEventListener("mousedown", function(event) {
     clickQueue.shift();
   }, QUEUE_DURATION);
 
-  if (queueThreshold(clickQueue.slice())) {
+  if (clickQueue.length >= QUEUE_THRESHOLD && queueThreshold(clickQueue.slice())) {
+    clickQueueSlice = clickQueue.slice();
     chrome.runtime.sendMessage(
       { message: "clickRepetition", elementAttributes: getAttributes(event.target) },
       function(response) {
-        console.log(response);
+        if (response.message === "clickAllRemaining") {
+          clickAllExcept(clickQueueSlice);
+        }
       }
     );
   }
@@ -34,10 +38,6 @@ document.addEventListener("mousedown", function(event) {
 
 // return true if four out of five or five out of six elements compare equal
 function queueThreshold(queue) {
-  if (queue.length < QUEUE_THRESHOLD) {
-    return false;
-  }
-
   let oddFound = false;
   for (let i = 0; i < queue.length - 1; i++) {
     if (!compareElements(queue[i], queue[i + 1])) {
@@ -48,6 +48,15 @@ function queueThreshold(queue) {
     }
   }
   return true;
+}
+
+function clickAllExcept(clickQueueSlice) {
+  const elements = Array.from(getMatchingElements(clickQueueSlice[0]));
+  for (let i = 0; i < clickQueueSlice.length; i++) {
+    elements.splice(elements.indexOf(clickQueueSlice[i]), 1);
+  }
+
+  clickElements(elements);
 }
 
 // get node names and values along with tagname
@@ -63,12 +72,9 @@ function getAttributes(element) {
 // compare equality of two html elements
 // optionally by given selector
 function compareElements(el1, el2, propName) {
+  // might make sense to compare nodeMaps directly instead of converting to pojo first
   const attrs1 = getAttributes(el1);
   const attrs2 = getAttributes(el2);
-
-  // might make sense to compare nodeMaps directly instead of converting to pojo first
-  // const attrs1 = el1.attributes;
-  // const attrs2 = el2.attributes;
 
   if (propName && (attrs1[propName] === attrs2[propName])) {
     return true;
@@ -103,7 +109,9 @@ function clickElements(elements, callback, errorCallback) {
   for (let i = 0; i < elements.length; i++) {
     elements[i].click();
   }
-  callback(elements[0].cloneNode(true), elements.length);
+  if (callback) {
+    callback(elements[0].cloneNode(true), elements.length);
+  }
 }
 
 chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
