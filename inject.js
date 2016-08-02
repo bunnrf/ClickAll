@@ -1,18 +1,22 @@
 const QUEUE_THRESHOLD = 5;
-const QUEUE_DURATION = 18000;
+const QUEUE_DURATION = 10000;
 
 // for Context Menus
 let contextEl = null;
 document.addEventListener("contextmenu", function(event) {
-  contextEl = event.target
+  contextEl = event.target;
 });
 
 // listen for repetitive clicks
 // there can be at most QUEUE_THRESHOLD + 1 elements in the queue at time of evaluation
 // so all but 1 el in the queue must compare to equal to broadcast repetition detection
 const clickQueue = [];
-let clickQueueSlice = [];
+let clickQueueSlice;
 document.addEventListener("mousedown", function(event) {
+  // ignore right clicks
+  if (event.which === 3) {
+    return false;
+  }
   clickQueue.push(event.target);
 
   setTimeout(() => {
@@ -56,7 +60,9 @@ function clickAllExcept(clickQueueSlice) {
     elements.splice(elements.indexOf(clickQueueSlice[i]), 1);
   }
 
-  clickElements(elements);
+  if (elements.length > 0) {
+    clickElements(elements);
+  }
 }
 
 // get node names and values along with tagname
@@ -70,11 +76,13 @@ function getAttributes(element) {
 }
 
 // compare equality of two html elements
-// optionally by given selector
+// optionally by given propName, eg class
 function compareElements(el1, el2, propName) {
-  // might make sense to compare nodeMaps directly instead of converting to pojo first
+  let result = true;
   const attrs1 = getAttributes(el1);
   const attrs2 = getAttributes(el2);
+  // might make sense to compare nodeMaps directly instead of
+  // converting to pojo first, which this does
 
   if (propName && (attrs1[propName] === attrs2[propName])) {
     return true;
@@ -82,16 +90,22 @@ function compareElements(el1, el2, propName) {
 
   Object.keys(attrs1).forEach((key) => {
     if (attrs1[key] !== attrs2[key]) {
-      return false;
+      result = false;
+      return;
     }
   })
-  return true;
+  return result;
 }
 
 // click listeners not triggered when target is <input>, so we use mouseup
 function getElementFromClick(callback) {
   function handleClick(event) {
     window.removeEventListener("mouseup", handleClick, false);
+    // ignore right clicks
+    if (event.which === 3) {
+      return false;
+    }
+
     callback(event.target);
   }
   window.addEventListener("mouseup", handleClick, false);

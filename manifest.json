@@ -23,6 +23,7 @@
     "<all_urls>",
     "activeTab",
     "contextMenus",
-    "debugger"
+    "debugger",
+    "notifications"
   ]
 }
