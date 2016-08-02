@@ -7,10 +7,9 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 const contexts = ["page","selection","link","editable","image","video", "audio"];
 for (let i = 0; i < contexts.length; i++) {
   const context = contexts[i];
-  const title = "Test '" + context + "' menu item";
+  const title = "ClickAll";
   const id = chrome.contextMenus.create({"title": title, "contexts":[context],
                                        "onclick": contextMenuCallback});
-  console.log("'" + context + "' item:" + id);
 }
 
 function contextMenuCallback(info, tab) {
@@ -18,3 +17,12 @@ function contextMenuCallback(info, tab) {
     console.log(response);
   });
 }
+
+chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
+  if (request.message === "clickRepetition") {
+    console.log(request);
+    // ask user if they want to click all
+    sendResponse({ message: "clickAllRemaining" });
+  }
+  return true;
+});
