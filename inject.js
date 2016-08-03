@@ -12,9 +12,11 @@ document.addEventListener("contextmenu", function(event) {
 // so all but 1 el in the queue must compare to equal to broadcast repetition detection
 const clickQueue = [];
 let clickQueueSlice;
-document.addEventListener("mousedown", function(event) {
-  // ignore right clicks
-  if (event.which === 3) {
+let notificationUp;
+document.addEventListener("mousedown", repetitionHandler);
+function repetitionHandler(event) {
+  // ignore right and middle clicks
+  if (event.which > 1 || notificationUp) {
     return false;
   }
   clickQueue.push(event.target);
@@ -24,12 +26,17 @@ document.addEventListener("mousedown", function(event) {
   }, QUEUE_DURATION);
 
   if (clickQueue.length >= QUEUE_THRESHOLD && queueThreshold(clickQueue.slice())) {
+    notificationUp = true;
     clickQueueSlice = clickQueue.slice();
     chrome.runtime.sendMessage(
       { message: "clickRepetition", elementAttributes: getAttributes(event.target) },
       function(response) {
         if (response.message === "clickAllRemaining") {
           clickAllExcept(clickQueueSlice);
+        } else if (response.message === "negativeUserResponse") {
+          document.removeEventListener("mousedown", repetitionHandler);
+        } else {
+          notificationUp = false;
         }
       }
     );
@@ -38,7 +45,7 @@ document.addEventListener("mousedown", function(event) {
   if (clickQueue.length > QUEUE_THRESHOLD) {
     clickQueue.splice(0, 1);
   }
-});
+}
 
 // return true if four out of five or five out of six elements compare equal
 function queueThreshold(queue) {

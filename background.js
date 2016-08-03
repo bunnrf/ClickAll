@@ -22,9 +22,9 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
   let notificationId;
   if (request.message === "clickRepetition") {
     const options = { type: "basic", title: "ClickAll",
-      buttons: [{ title: "Yes"}, { title: "No" }],
+      buttons: [{ title: "Yes"}, { title: "No, don't ask again" }],
       iconUrl: "https://inkspand.s3.amazonaws.com/assets/one-click-icon-193a10810ae09a9864fb306cdf7298a0.png",
-      message: "It looks like you're clicking a lot of the same element. Would you like ClickAll to click the rest for you?" }
+      message: "It looks like you're clicking a lot of similar element. Would you like ClickAll to click the rest for you?" }
     chrome.notifications.create(options, function(notificationIdString) {
       notificationId = notificationIdString;
     });
@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
     }, 5000);
 
     chrome.notifications.onClosed.addListener( (notificationId, byUser) => {
-      sendResponse({ message: "negativeResponse" });
+      sendResponse({ message: "notificationTimedOut" });
     });
     chrome.notifications.onButtonClicked.addListener( (notificationId, buttonIndex) => {
       if (buttonIndex === 0) {
@@ -42,7 +42,7 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
         chrome.notifications.clear(notificationId);
         return;
       } else {
-        sendResponse({ message: "negativeResponse" });
+        sendResponse({ message: "negativeUserResponse" });
         chrome.notifications.clear(notificationId);
         return;
       }
