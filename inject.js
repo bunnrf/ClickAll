@@ -1,5 +1,6 @@
 const QUEUE_THRESHOLD = 5;
 const QUEUE_DURATION = 10000;
+const ClickHistory = new ClickHistoryQueue(QUEUE_DURATION);
 
 // for Context Menus
 let contextEl = null;
@@ -7,32 +8,38 @@ document.addEventListener("contextmenu", function(event) {
   contextEl = event.target;
 });
 
-// listen for repetitive clicks
-// there can be at most QUEUE_THRESHOLD + 1 elements in the queue at time of evaluation
-// so all but 1 el in the queue must compare to equal to broadcast repetition detection
-const clickQueue = [];
-let clickQueueSlice;
 let notificationUp;
-document.addEventListener("mousedown", repetitionHandler);
+chrome.storage.sync.get({
+  repetitionListening: false
+}, storageHandler);
+
+function storageHandler(items) {
+  if (items.repetitionListening) {
+    document.addEventListener("mousedown", repetitionHandler);
+  }
+}
+
+// listen for repetitive clicks
 function repetitionHandler(event) {
   // ignore right and middle clicks
-  if (event.which > 1 || notificationUp) {
+  if (event.which > 1) {
     return false;
   }
-  clickQueue.push(event.target);
 
-  setTimeout(() => {
-    clickQueue.shift();
-  }, QUEUE_DURATION);
+  ClickHistory.elementClicked(event.target);
 
-  if (clickQueue.length >= QUEUE_THRESHOLD && queueThreshold(clickQueue.slice())) {
+  if ( !notificationUp && ClickHistory.recentClickCount >= QUEUE_THRESHOLD &&
+       matchLimit(ClickHistory.mostRecentlyClicked())) {
+
     notificationUp = true;
-    clickQueueSlice = clickQueue.slice();
     chrome.runtime.sendMessage(
       { message: "clickRepetition", elementAttributes: getAttributes(event.target) },
       function(response) {
         if (response.message === "clickAllRemaining") {
-          clickAllExcept(clickQueueSlice);
+          // click all elements that have never been clicked
+          // CHQ holds #clicks on each element, could also
+          // refactor to return elements with even #clicks
+          clickElements(ClickHistoryQueue.getUnclickedLike(event.target));
         } else if (response.message === "negativeUserResponse") {
           document.removeEventListener("mousedown", repetitionHandler);
         } else {
@@ -41,17 +48,13 @@ function repetitionHandler(event) {
       }
     );
   }
-
-  if (clickQueue.length > QUEUE_THRESHOLD) {
-    clickQueue.splice(0, 1);
-  }
 }
 
-// return true if four out of five or five out of six elements compare equal
-function queueThreshold(queue) {
+// return true if more than length - 1 elements compare equal
+function matchLimit(queueSlice) {
   let oddFound = false;
-  for (let i = 0; i < queue.length - 1; i++) {
-    if (!compareElements(queue[i], queue[i + 1])) {
+  for (let i = 0; i < queueSlice.length - 1; i++) {
+    if (!compareElements(queueSlice[i], queueSlice[i + 1])) {
       if (oddFound) {
         return false;
       }
@@ -61,6 +64,7 @@ function queueThreshold(queue) {
   return true;
 }
 
+// deprecated
 function clickAllExcept(clickQueueSlice) {
   const elements = Array.from(getMatchingElements(clickQueueSlice[0]));
   for (let i = 0; i < clickQueueSlice.length; i++) {
