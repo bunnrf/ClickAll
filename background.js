@@ -4,11 +4,11 @@ chrome.browserAction.onClicked.addListener(function(tab) {
   });
 });
 
-const contexts = ["page","selection","link","editable","image","video", "audio"];
+const contexts = ["page", "selection", "link", "editable", "image"];
 for (let i = 0; i < contexts.length; i++) {
   const context = contexts[i];
   const title = "ClickAll";
-  chrome.contextMenus.create({"title": title, "contexts":[context],
+  chrome.contextMenus.create({"title": title, "contexts": [context],
                               "onclick": contextMenuCallback});
 }
 

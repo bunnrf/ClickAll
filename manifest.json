@@ -2,8 +2,8 @@
   "manifest_version": 2,
 
   "name": "ClickAll",
-  "description": "This extension clicks things for you.",
-  "version": "1.1",
+  "description": "Use this extension to click things automatically.",
+  "version": "1.1.1",
   "options_page": "options.html",
 
   "background": {
@@ -26,5 +26,8 @@
     "contextMenus",
     "storage",
     "notifications"
-  ]
+  ],
+  "icons": {
+    "48": "click_icon.png"
+  }
 }

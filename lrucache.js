@@ -70,6 +70,10 @@ ClickHistoryQueue.prototype.mostRecentlyClicked = function (count) {
   return mostRecent.map((node) => { return node.element; });
 };
 
+ClickHistoryQueue.prototype.getClickCount = function (element) {
+  this.elementsMap[element._uniqueId].clickCount;
+};
+
 ClickHistoryQueue.getUnclickedLike = function(element) {
   return Array.from(document.getElementsByClassName(element.className)).filter(el => {
     return !el._uniqueId;

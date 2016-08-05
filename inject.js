@@ -132,7 +132,9 @@ function clickElements(elements, callback, errorCallback) {
     return;
   }
   for (let i = 0; i < elements.length; i++) {
-    elements[i].click();
+    if (!elements[i]._uniqueId || ClickHistory.getClickCount(elements[i]) % 2 === 0 ) {
+      elements[i].click();
+    }
   }
   if (callback) {
     callback(elements[0].cloneNode(true), elements.length);
